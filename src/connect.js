@@ -1,35 +1,47 @@
+import {FORM} from './util'
+
 const getComponentName = comp =>
   comp.options && comp.options._Ctor ? comp.options.name : comp.name
 
-export default (opts = {}) => {
+const commit = (store, event, ...args) =>
+  store.commit(`${FORM}/${event}`, ...args)
 
+export default (opts = {}) => {
+  const form = opts.name
   return component => {
     const componentName = getComponentName(component)
     return {
       name: 'vf-' + componentName,
       provide () {
         return {
+          // TODO: These should be accessible on a field level
+          // and not here. Add new `Field` component
           input: {
-            touched: false,
-            visited: false,
-            active: false,
             id: `${componentName}-${Math.random()}`,
-            onChange () {
+            onChange: (field, value) => {
+              commit(this.$store, 'CHANGE', {field, value, form})
               console.log('change')
             },
-            onFocus () {
+            onFocus: (field) => {
+              commit(this.$store, 'FOCUS', {field, form})
               console.log('focus')
             },
-            onBlur () {
+            onBlur: (field) => {
+              commit(this.$store, 'BLUR', {field, form})
               console.log('blur')
-            },
+            }
           },
           meta: {
             valid: true,
             invalid: false,
             submitting: false,
-          },
+            register: field => commit(this.$store, 'REGISTER_FIELD', {field, form})
+          }
         };
+      },
+
+      created () {
+        commit(this.$store, 'REGISTER_FORM', {form})
       },
 
       render (h) {
